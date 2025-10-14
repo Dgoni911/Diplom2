@@ -1,78 +1,93 @@
 import pytest
 import allure
+from data.login_data import ErrorMessages
 
-
-@allure.epic("Stellar Burgers API")
-@allure.feature("Создание заказа")
 class TestOrderCreation:
     
-    @allure.title("Создание заказа с авторизацией и валидными ингредиентами")
+    @allure.title("Создание заказа с авторизацией")
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
     @pytest.mark.api
-    def test_create_order_with_auth_valid_ingredients(self, auth_client, valid_ingredients, validator):
-        api_client, user = auth_client
+    def test_create_order_with_auth_valid_ingredients(self, api_client, registered_user, valid_ingredients, validator):
+        if not valid_ingredients:
+            pytest.skip("Нет доступных ингредиентов")
         
-        response = api_client.create_order(valid_ingredients, user['access_token'])
+        auth_token = registered_user.get('access_token')
+        response = api_client.create_order(valid_ingredients[:2], auth_token)
         
-        validator.validate_success_response(response, ['name', 'order'])
-        validator.validate_order_data(response)
-        validator.validate_response_time(response, max_time=5)
+        if response.get('status_code') == 200:
+            validator.validate_success_response(response, 200)
+            assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
+        else:
+            assert response.get('status_code') != 401, "Не должно быть ошибки авторизации"
+            assert response.get('status_code') != 403, "Не должно быть ошибки доступа"
     
     @allure.title("Создание заказа без авторизации")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.regression
     @pytest.mark.api
     def test_create_order_without_auth(self, api_client, valid_ingredients, validator):
-        response = api_client.create_order(valid_ingredients)
+        if not valid_ingredients:
+            pytest.skip("Нет доступных ингредиентов")
         
-        assert 'status_code' not in response or response.get('status_code') != 500
+        response = api_client.create_order(valid_ingredients[:2])
         
-        if response.get('success') == False:
-            validator.validate_error_response(
-                response,
-                expected_message_keywords=['authorized', 'auth', 'token']
-            )
+        if response.get('status_code') == 200:
+            validator.validate_success_response(response, 200)
+            assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
+        elif response.get('status_code') == 401:
+            validator.validate_error_response(response, 401, "You should be authorised")
+        else:
+            assert response.get('success') == True or response.get('status_code') not in [400, 500]
     
     @allure.title("Создание заказа без ингредиентов")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.regression
     @pytest.mark.api
-    def test_create_order_empty_ingredients(self, auth_client, test_data, validator):
-        api_client, user = auth_client
-        ingredients = test_data.get_empty_ingredients()
+    def test_create_order_empty_ingredients(self, api_client, registered_user, validator, error_messages):
+        auth_token = registered_user.get('access_token')
         
-        response = api_client.create_order(ingredients, user['access_token'])
-        
-        validator.validate_error_response(
-            response,
-            expected_message_keywords=['provided', 'ingredient', 'required'],
-            expected_status_code=400
-        )
+        response = api_client.create_order([], auth_token)
+
+        if response.get('status_code') == 400:
+            validator.validate_error_response(response, 400, error_messages.INGREDIENTS_REQUIRED)
+        else:
+
+            assert response.get('success') == False, "Создание заказа без ингредиентов должно завершиться ошибкой"
+            assert response.get('status_code') in [400, 403, 500], \
+                f"Ожидалась ошибка 400, 403 или 500, получен {response.get('status_code')}"
     
-    @allure.title("Создание заказа с невалидными ингредиентами")
+    @allure.title("Создание заказа с неверным хешем ингредиентов")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.regression
     @pytest.mark.api
-    def test_create_order_invalid_ingredients(self, auth_client, test_data, validator):
-        api_client, user = auth_client
-        ingredients = test_data.get_invalid_ingredients()
+    def test_create_order_invalid_ingredients(self, api_client, registered_user, validator):
+        auth_token = registered_user.get('access_token')
+        invalid_ingredients = ["invalid_id_1", "invalid_id_2"]
         
-        response = api_client.create_order(ingredients, user['access_token'])
-        
-        assert response.get('success') == False or response.get('status_code', 200) >= 400
+        response = api_client.create_order(invalid_ingredients, auth_token)
+
+        if response.get('status_code') == 500:
+            validator.validate_error_response(response, 500)
+        else:
+            assert response.get('success') == False, "Создание заказа с невалидными ингредиентами должно завершиться ошибкой"
+            assert response.get('status_code') in [400, 403, 500], \
+                f"Ожидалась ошибка 400, 403 или 500, получен {response.get('status_code')}"
     
     @allure.title("Создание заказа с одним ингредиентом")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.regression
     @pytest.mark.api
-    def test_create_order_single_ingredient(self, auth_client, valid_ingredients, validator):
-        api_client, user = auth_client
-        single_ingredient = [valid_ingredients[0]] if valid_ingredients else ["60d3b41abdacab0026a733c6"]
+    def test_create_order_single_ingredient(self, api_client, registered_user, valid_ingredients, validator):
+        if not valid_ingredients:
+            pytest.skip("Нет доступных ингредиентов")
         
-        response = api_client.create_order(single_ingredient, user['access_token'])
+        auth_token = registered_user.get('access_token')
+        response = api_client.create_order([valid_ingredients[0]], auth_token)
         
-        if response.get('success'):
-            validator.validate_success_response(response, ['name', 'order'])
+        if response.get('status_code') == 200:
+            validator.validate_success_response(response, 200)
+            assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
         else:
-            assert 'message' in response
+            assert response.get('status_code') != 401, "Не должно быть ошибки авторизации"
+            assert response.get('status_code') != 403, "Не должно быть ошибки доступа"

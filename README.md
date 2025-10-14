@@ -18,18 +18,19 @@ allure serve allure-results
 # Запуск с HTML отчетом
 pytest --html=test_reports/report.html
 
-
-api-tests/
 ├── .gitignore
+api-tests/
 ├── requirements.txt
 ├── pytest.ini
 ├── conftest.py
 ├── config/
 │   ├── __init__.py
+│   ├── urls.py
 │   └── settings.py
 ├── data/
 │   ├── __init__.py
 │   ├── test_data.py
+│   ├── login_data.py
 │   └── endpoints.py
 ├── helpers/
 │   ├── __init__.py
