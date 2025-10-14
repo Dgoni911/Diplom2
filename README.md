@@ -19,9 +19,9 @@ allure serve allure-results
 pytest --html=test_reports/report.html
 
 ├── .gitignore
-api-tests/
 ├── requirements.txt
 ├── pytest.ini
+api-tests/
 ├── conftest.py
 ├── config/
 │   ├── __init__.py
