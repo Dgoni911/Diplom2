@@ -1,5 +1,7 @@
 import pytest
 import allure
+from helpers.api_client import StellarBurgersApiClient
+from helpers.response_validator import ResponseValidator
 from data.test_data import TestData
 from data.login_data import ErrorMessages
 
