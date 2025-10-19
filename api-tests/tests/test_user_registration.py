@@ -11,7 +11,11 @@ class TestUserRegistration:
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
     @pytest.mark.api
-    def test_register_unique_user_success(self, api_client, test_data, validator):
+    def test_register_unique_user_success(self):
+        api_client = StellarBurgersApiClient()
+        validator = ResponseValidator()
+        test_data = TestData()
+        
         user_data = test_data.generate_unique_user()
         
         response = api_client.register_user(user_data)
@@ -25,7 +29,12 @@ class TestUserRegistration:
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.regression
     @pytest.mark.api
-    def test_register_existing_user_fails(self, api_client, test_data, validator, error_messages):
+    def test_register_existing_user_fails(self):
+        api_client = StellarBurgersApiClient()
+        validator = ResponseValidator()
+        test_data = TestData()
+        error_messages = ErrorMessages()
+        
         user_data = test_data.generate_unique_user()
         api_client.register_user(user_data)
         
@@ -38,7 +47,12 @@ class TestUserRegistration:
     @pytest.mark.parametrize("missing_field", ["email", "password", "name"])
     @pytest.mark.regression
     @pytest.mark.api
-    def test_register_user_missing_field_fails(self, api_client, test_data, validator, error_messages, missing_field):
+    def test_register_user_missing_field_fails(self, missing_field):
+        api_client = StellarBurgersApiClient()
+        validator = ResponseValidator()
+        test_data = TestData()
+        error_messages = ErrorMessages()
+        
         user_data = test_data.generate_unique_user()
         user_data.pop(missing_field)  
         
@@ -51,12 +65,22 @@ class TestUserRegistration:
     @pytest.mark.parametrize("invalid_email", TestData.get_invalid_emails())
     @pytest.mark.regression
     @pytest.mark.api
-    def test_register_user_invalid_email_fails(self, api_client, test_data, validator, invalid_email):
+    def test_register_user_invalid_email_fails(self, invalid_email):
+        api_client = StellarBurgersApiClient()
+        validator = ResponseValidator()
+        test_data = TestData()
+        
         user_data = test_data.generate_unique_user()
         user_data['email'] = invalid_email
         
         response = api_client.register_user(user_data)
         
-        assert response.get('success') == False, "Регистрация с некорректным email должна завершиться ошибкой"
-        assert response.get('status_code') in [400, 403, 500], \
-            f"Ожидалась ошибка 400, 403 или 500, получен {response.get('status_code')}"
+        assert response.get('success') == False, f"Регистрация с email '{invalid_email}' должна завершиться ошибкой"
+        
+        expected_statuses = [400, 403, 500]
+        assert response.get('status_code') in expected_statuses, \
+            f"Ожидался один из статусов {expected_statuses}, получен {response.get('status_code')}"
+        
+        if invalid_email == "":
+            assert "required" in response.get('message', '').lower(), \
+                "Для пустого email должно быть сообщение о обязательных полях"

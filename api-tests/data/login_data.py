@@ -29,6 +29,7 @@ class LoginTestData:
         {}  
     ]
 
+
 class ErrorMessages:
     USER_EXISTS = "User already exists"
     REQUIRED_FIELDS = "Email, password and name are required fields"
@@ -36,3 +37,4 @@ class ErrorMessages:
     INGREDIENTS_REQUIRED = "Ingredient ids must be provided"
     UNAUTHORIZED = "You should be authorised"
     EMAIL_EXISTS = "User with such email already exists"
+    INVALID_EMAIL = "email or password are incorrect"  

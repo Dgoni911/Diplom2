@@ -16,7 +16,7 @@ class TestOrderCreation:
         validator = ResponseValidator()
         
         auth_token = registered_user.get('access_token')
-        response = api_client.create_order(valid_ingredients[:2], auth_token)
+        response = api_client.create_order(valid_ingredients, auth_token)
         
         validator.validate_success_response(response, 200)
         assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
@@ -30,13 +30,9 @@ class TestOrderCreation:
         api_client = StellarBurgersApiClient()
         validator = ResponseValidator()
     
-        response = api_client.create_order(valid_ingredients[:2])
+        response = api_client.create_order(valid_ingredients)
     
-        if response.get('status_code') == 200:
-            validator.validate_success_response(response, 200)
-            assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
-        else:
-            validator.validate_error_response(response, 401, "You should be authorised")
+        validator.validate_error_response(response, 400, "One or more ids provided are incorrect")
     
     @allure.title("Создание заказа без ингредиентов")
     @allure.severity(allure.severity_level.CRITICAL)
@@ -56,7 +52,7 @@ class TestOrderCreation:
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.regression
     @pytest.mark.api
-    def test_create_order_invalid_ingredients(self, registered_user):
+    def test_create_order_invalid_ingredients_hash(self, registered_user):
         api_client = StellarBurgersApiClient()
         validator = ResponseValidator()
         
@@ -65,8 +61,7 @@ class TestOrderCreation:
         
         response = api_client.create_order(invalid_ingredients, auth_token)
 
-        assert response.get('success') == False, "Создание заказа с невалидными ингредиентами должно завершиться ошибкой"
-        assert response.get('status_code') in [400, 500], "Ожидалась ошибка 400 или 500"
+        validator.validate_error_response(response, 400, "One or more ids provided are incorrect")
     
     @allure.title("Создание заказа с одним ингредиентом")
     @allure.severity(allure.severity_level.NORMAL)
