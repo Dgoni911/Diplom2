@@ -16,7 +16,9 @@ class TestOrderCreation:
         validator = ResponseValidator()
         
         auth_token = registered_user.get('access_token')
-        response = api_client.create_order(valid_ingredients, auth_token)
+        
+        with allure.step("Создать заказ с авторизацией и валидными ингредиентами"):
+            response = api_client.create_order(valid_ingredients, auth_token)
         
         validator.validate_success_response(response, 200)
         assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"
@@ -30,7 +32,8 @@ class TestOrderCreation:
         api_client = StellarBurgersApiClient()
         validator = ResponseValidator()
     
-        response = api_client.create_order(valid_ingredients)
+        with allure.step("Создать заказ без авторизации"):
+            response = api_client.create_order(valid_ingredients)
     
         validator.validate_error_response(response, 400, "One or more ids provided are incorrect")
     
@@ -44,7 +47,9 @@ class TestOrderCreation:
         error_messages = ErrorMessages()
         
         auth_token = registered_user.get('access_token')
-        response = api_client.create_order([], auth_token)
+        
+        with allure.step("Создать заказ с пустым списком ингредиентов"):
+            response = api_client.create_order([], auth_token)
 
         validator.validate_error_response(response, 400, error_messages.INGREDIENTS_REQUIRED)
     
@@ -59,7 +64,8 @@ class TestOrderCreation:
         auth_token = registered_user.get('access_token')
         invalid_ingredients = ["invalid_id_1", "invalid_id_2"]
         
-        response = api_client.create_order(invalid_ingredients, auth_token)
+        with allure.step("Создать заказ с невалидными хешами ингредиентов"):
+            response = api_client.create_order(invalid_ingredients, auth_token)
 
         validator.validate_error_response(response, 400, "One or more ids provided are incorrect")
     
@@ -72,7 +78,9 @@ class TestOrderCreation:
         validator = ResponseValidator()
         
         auth_token = registered_user.get('access_token')
-        response = api_client.create_order([valid_ingredients[0]], auth_token)
+        
+        with allure.step("Создать заказ с одним ингредиентом"):
+            response = api_client.create_order([valid_ingredients[0]], auth_token)
         
         validator.validate_success_response(response, 200)
         assert 'order' in response.get('data', {}), "Ответ должен содержать информацию о заказе"

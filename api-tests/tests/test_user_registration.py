@@ -60,12 +60,18 @@ class TestUserRegistration:
         
         validator.validate_error_response(response, 403, error_messages.REQUIRED_FIELDS)
     
-    @allure.title("Регистрация с некорректным email")
+    @allure.title("Регистрация с некорректным email форматом")
     @allure.severity(allure.severity_level.NORMAL)
-    @pytest.mark.parametrize("invalid_email", TestData.get_invalid_emails())
+    @pytest.mark.parametrize("invalid_email", [
+        "invalid-email",
+        "test@",
+        "@domain.com",
+        "no-at.com",
+        "spaces in@email.com"
+    ])
     @pytest.mark.regression
     @pytest.mark.api
-    def test_register_user_invalid_email_fails(self, invalid_email):
+    def test_register_user_invalid_email_format_fails(self, invalid_email):
         api_client = StellarBurgersApiClient()
         validator = ResponseValidator()
         test_data = TestData()
@@ -80,7 +86,20 @@ class TestUserRegistration:
         expected_statuses = [400, 403, 500]
         assert response.get('status_code') in expected_statuses, \
             f"Ожидался один из статусов {expected_statuses}, получен {response.get('status_code')}"
+    
+    @allure.title("Регистрация с пустым email")
+    @allure.severity(allure.severity_level.CRITICAL)
+    @pytest.mark.regression
+    @pytest.mark.api
+    def test_register_user_empty_email_fails(self):
+        api_client = StellarBurgersApiClient()
+        test_data = TestData()
         
-        if invalid_email == "":
-            assert "required" in response.get('message', '').lower(), \
-                "Для пустого email должно быть сообщение о обязательных полях"
+        user_data = test_data.generate_unique_user()
+        user_data['email'] = ""
+        
+        response = api_client.register_user(user_data)
+        
+        assert response.get('success') == False, "Регистрация с пустым email должна завершиться ошибкой"
+        assert "required" in response.get('message', '').lower(), \
+            "Для пустого email должно быть сообщение о обязательных полях"
